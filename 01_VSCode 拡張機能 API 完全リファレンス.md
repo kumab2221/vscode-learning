@@ -135,24 +135,72 @@ window.state: WindowState
 **メッセージ表示**
 
 ```typescript
-// 情報メッセージ
-vscode.window.showInformationMessage('操作が完了しました');
+const saveAsCommand = vscode.commands.registerCommand(
+  'helloextension.fileSaveAs',
+	async () => {
+		const editor = vscode.window.activeTextEditor;
+		if(!editor){
+			vscode.window.showErrorMessage('アクティブなテキストエディタがありません');
+			return;
+		}
+		const doc = editor.document;
+		const targetUri = await vscode.window.showSaveDialog({
+		defaultUri: doc.uri.scheme === 'file' ? doc.uri : undefined,
+			saveLabel: '保存'
+		});
 
-// アクション付きメッセージ
-const selection = await vscode.window.showInformationMessage(
-    'ファイルを保存しますか？',
-    '保存',
-    'キャンセル'
+		if(!targetUri){
+			return;
+		}
+		try{
+			const text = doc.getText();
+			const encoder = new TextEncoder();
+			const bytes = encoder.encode(text);
+
+			await vscode.workspace.fs.writeFile(targetUri, bytes);
+
+			const newDoc = await vscode.workspace.openTextDocument(targetUri);
+			await vscode.window.showTextDocument(newDoc, editor.viewColumn);
+
+			vscode.window.showInformationMessage('ファイルを別名で保存しました');
+		}catch(err){
+			vscode.window.showErrorMessage('保存に失敗しました:{err}');
+		}
+  }
 );
-if (selection === '保存') {
-    await vscode.workspace.save(vscode.window.activeTextEditor!.document.uri);
-}
+const saveCommand = vscode.commands.registerCommand(
+	'helloextension.fileSave',
+	async () => {
+		const editor = vscode.window.activeTextEditor;
+		if(!editor){
+			vscode.window.showErrorMessage('アクティブなテキストエディタがありません')
+			return;
+	  }
 
-// 警告メッセージ
-vscode.window.showWarningMessage('この操作は元に戻せません');
+    const doc = editor.document;
 
-// エラーメッセージ
-vscode.window.showErrorMessage('ファイルの読み込みに失敗しました');
+    if(doc.isUntitled){
+				vscode.window.showErrorMessage('このファイルは未保存のファイルです。保存先を指定してください');
+				//saveASコマンド呼び出し
+				vscode.commands.executeCommand('helloextension.fileSaveAs');
+				return;
+		}
+
+		const selection = await vscode.window.showInformationMessage(
+			'ファイルを保存しますか？',
+			'保存',
+			'キャンセル'
+		);
+		if(selection === '保存'){
+			try{
+				await vscode.workspace.save(doc.uri);
+				vscode.window.showWarningMessage('この操作は元に戻せません');
+			}catch(err){
+				vscode.window.showErrorMessage('保存に失敗しました:{err}');
+			}
+		}
+  }
+);
 ```
 
 **ダイアログ**
