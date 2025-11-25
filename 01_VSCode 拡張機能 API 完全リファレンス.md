@@ -91,7 +91,7 @@ vscode.commands.registerCommand('myExtension.greet', (name: string) => {
 });
 
 // テキストエディタコマンド
-vscode.commands.registerCommand('myExtension.insertTimestamp',
+vscode.commands.registerTextEditorCommand('myExtension.insertTimestamp',
     (textEditor: vscode.TextEditor, edit: vscode.TextEditorEdit) => {
         const timestamp = new Date().toISOString();
         edit.insert(textEditor.selection.active, timestamp);
